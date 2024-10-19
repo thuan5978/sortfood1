@@ -1,31 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:sortfood/ui/home_screen.dart';
+import 'package:sortfood/api/airtableservice.dart';
+import 'package:sortfood/model/products.dart';
 
-class CartPage extends StatefulWidget{
-  const CartPage({super.key});
+class CartPage extends StatelessWidget {
+  final List<Products> cartProducts;
 
-  @override
-  CartPageState createState() => CartPageState();
-}
+  const CartPage({super.key, required this.cartProducts});
 
-class CartPageState extends State<CartPage>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.orange, iconTheme:const IconThemeData(color: Colors.white),
-      title: const Text('Cart', style: TextStyle(color: Colors.white),)),
+      appBar: AppBar(
+        backgroundColor: Colors.orange,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Cart', style: TextStyle(color: Colors.white)),
+      ),
       body: SingleChildScrollView(
         child: _body(context),
       ),
     );
   }
 
-  Widget _body(BuildContext context){
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
+  Widget _body(BuildContext context) {
+    if (cartProducts.isEmpty) {
+      return const Center(
+        child: Text('Your cart is empty'),
+      );
+    }
 
-    return SizedBox(
-      width: width,
-      height: height,
-    ); 
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cartProducts.length,
+      itemBuilder: (context, index) {
+        final product = cartProducts[index];
+        return ListTile(
+          leading: Image.network(product.img!, width: 50, height: 50),
+          title: Text(product.name ?? ''),
+          subtitle: Text('${product.price?.toStringAsFixed(3)} VND'),
+        );
+      },
+    );
   }
 }

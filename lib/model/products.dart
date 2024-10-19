@@ -1,35 +1,43 @@
 class Products {
-  String? id;
+  int? id;
   String? name;
   String? description;
-  double? price;
-  int? quantity;
-  String? img;
-  String? category;
-  List<String>? state; 
+  double price;
+  int quantity;
+  String img;
+  String category;
+  List<String> state;
 
   Products({
     this.id,
-    this.name,
-    this.description,
-    this.price,
-    this.quantity,
-    this.img,
-    this.category,
-    this.state,
-  });
+    this.name = 'Chưa có tên',
+    this.description = 'Chưa có mô tả',
+    this.price = 0.0,
+    this.quantity = 0,
+    this.img = '',
+    this.category = 'Chưa có danh mục',
+    List<String>? state,
+  }) : state = state ?? [];
 
   factory Products.fromJson(Map<dynamic, dynamic> json) {
     return Products(
-      id: json['ID'],
-      name: json['fields']['Foodname'] ?? 'No Name',
-      description: json['fields']['Description'] ?? 'No Description',
-      price: (json['fields']['Price'] is num) ? json['fields']['Price'].toDouble() : 0.000,
-      quantity: json['fields']['Quantity'] ?? 0,
-      img: json['fields']['Image'] ?? '',
-      category: json['fields']['Category'] ?? 'Uncategorized',
-      state: (json['fields']['State'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [], 
+      id: (json['ID'] is int) ? json['ID'] : null,
+      name: json['Foodname'] ?? 'Chưa có tên',
+      description: json['Description'] ?? 'Chưa có mô tả',
+      price: (json['Price'] is num) ? json['Price'].toDouble() : 0.0,
+      quantity: (json['Quantity'] is int) ? json['Quantity'] : int.tryParse(json['Quantity']?.toString() ?? '0') ?? 0,
+      img: (json['Image'] is List && (json['Image'] as List).isNotEmpty)
+          ? json['Image'][0]['url'] ?? ''
+          : '',
+      category: json['Category'] ?? 'Chưa có danh mục',
+      state: (json['State'] is List<dynamic>)
+          ? (json['State'] as List).map((e) => e.toString()).toList()
+          : [],
     );
   }
-}
 
+  @override
+  String toString() {
+    return 'Products(id: $id, name: $name, price: $price, quantity: $quantity, category: $category)';
+  }
+}

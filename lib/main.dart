@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:sortfood/ui/home_page.dart'; 
+import 'package:sortfood/ui/auth/waiting.dart'; 
+import 'package:logger/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "lib/assets/.env");
+  final Logger logger = Logger();
+  
+  try {
+    await dotenv.load(fileName: "lib/assets/.env");
+  } catch (e) {
+    logger.i('Failed to load .env file: $e');
+  }
 
   runApp(const MyApp());
 }
@@ -30,7 +37,7 @@ class MyApp extends StatelessWidget {
           color: Colors.black,
         ),
       ),
-      home: const HomePage(), 
+      home: const WaitingPage(),
     );
   }
 }

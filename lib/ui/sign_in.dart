@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:sortfood/ui/forgot_password.dart';
+import 'package:sortfood/ui/home_screen.dart'; 
+import 'package:sortfood/model/users.dart';
+import 'package:sortfood/api/airtableservice.dart';
+import 'package:logger/logger.dart';
+
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
 
-  @override 
+  @override
   SignInState createState() => SignInState();
 }
 
 class SignInState extends State<SignIn> {
   final TextEditingController emailControl = TextEditingController();
   final TextEditingController passControl = TextEditingController();
+  bool isLoading = false; 
+  bool obscurePassword = true; 
+  final Logger logger = Logger();
 
   @override
   void dispose() {
@@ -18,15 +26,64 @@ class SignInState extends State<SignIn> {
     super.dispose();
   }
 
-  void _signIn() { 
+  Future<void> _signIn() async {
     final email = emailControl.text.trim();
     final pass = passControl.text.trim();
 
     if (email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email và mật khẩu không được trống"))
+        const SnackBar(content: Text("Email và mật khẩu không được trống")),
       );
       return;
+    }
+
+    setState(() {
+      isLoading = true; 
+    });
+
+    try {
+      AirtableService airtableService = AirtableService();
+      List<Users> users = await airtableService.fetchUsers();
+
+      final Users user = users.firstWhere(
+        (user) => user.email == email && user.password == pass,
+        orElse: () => Users(id: null, email: "")
+      );
+
+      if (!mounted) return;
+
+      if (user.id == null) {
+        setState(() {
+          isLoading = false; 
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tài khoản không tồn tại")),
+        );
+        return;
+      }
+
+      setState(() {
+        isLoading = false; 
+      });
+      emailControl.clear(); 
+      passControl.clear();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false; 
+      });
+      
+      logger.e("Error during sign-in: $error");
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Có lỗi xảy ra: ${error.toString()}")),
+      );
     }
   }
 
@@ -39,11 +96,20 @@ class SignInState extends State<SignIn> {
     );
   }
 
+  void _togglePasswordVisibility() {
+    setState(() {
+      obscurePassword = !obscurePassword;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.orange, iconTheme:const IconThemeData(color: Colors.white),
-      title: const Text('Sign In', style: TextStyle(color: Colors.white),)),
+      appBar: AppBar(
+        backgroundColor: Colors.orange,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Sign In', style: TextStyle(color: Colors.white)),
+      ),
       body: SingleChildScrollView(
         child: _body(context),
       ),
@@ -74,34 +140,41 @@ class SignInState extends State<SignIn> {
           const SizedBox(height: 40),
           SizedBox(
             width: width,
-            child: 
-              GestureDetector(
-              onTap: _forgotPassword, 
-              child: const Text("Forgot Password?", style: TextStyle(color: Color.fromARGB(255, 240, 150, 14)),textAlign: TextAlign.end,),
+            child: GestureDetector(
+              onTap: _forgotPassword,
+              child: const Text(
+                "Forgot Password?", 
+                style: TextStyle(color: Color.fromARGB(255, 240, 150, 14)),
+                textAlign: TextAlign.end,
+              ),
             ),
           ),
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: _signIn, 
-            child: const ButtonCustom(text: "Sign In"),
+            onTap: isLoading ? null : _signIn, 
+            child: isLoading 
+                ? const CircularProgressIndicator() 
+                : const ButtonCustom(text: "Sign In"),
           ),
-          
-
-
-        const SizedBox(height: 20),
-          
+          const SizedBox(height: 20),
         ],
       ),
     );
-  } 
+  }
 
   Widget _input(BuildContext context, String title, TextEditingController input, bool isPassword) {
     return TextField(
       controller: input,
-      obscureText: isPassword,
+      obscureText: isPassword && obscurePassword,
       decoration: InputDecoration(
         labelText: title,
         border: const OutlineInputBorder(),
+        suffixIcon: isPassword 
+            ? IconButton(
+                icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: _togglePasswordVisibility,
+              )
+            : null,
       ),
     );
   }

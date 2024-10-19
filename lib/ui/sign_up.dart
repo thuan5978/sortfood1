@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logger/logger.dart';
+import 'package:sortfood/api/airtableservice.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -23,24 +27,37 @@ class SignUpState extends State<SignUp> {
     super.dispose();
   }
 
-  void _signUp() {
-    if (_formKey.currentState!.validate()) {
-      final username = usernameControl.text.trim();
-      final email = emailControl.text.trim();
-      final pass = passControl.text.trim();
+  void _signUp() async {
+  if (_formKey.currentState!.validate()) {
+    final username = usernameControl.text.trim();
+    final email = emailControl.text.trim();
+    final pass = passControl.text.trim();
 
-      logger.i('Username: $username, Email: $email, Password: $pass');
+    
+    logger.i('Signing up user with Username: $username, Email: $email');
+
+    final airtableService = AirtableService();
+
+    try {
+      await airtableService.createUser(username, email, pass);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Account created successfully!"))
       );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to create account: $e"))
+      );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.orange, iconTheme:const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.orange,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Sign Up', style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
@@ -62,13 +79,12 @@ class SignUpState extends State<SignUp> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
-          
           children: [
             SizedBox(
-            width: 105,
-            height: 105,
-            child: Image.asset("lib/assets/icon/logo.png", fit: BoxFit.cover),
-          ),
+              width: 105,
+              height: 105,
+              child: Image.asset("lib/assets/icon/logo.png", fit: BoxFit.cover),
+            ),
             const SizedBox(height: 160),
             _input(context, 'Username', usernameControl, false, (value) {
               if (value == null || value.isEmpty) {
