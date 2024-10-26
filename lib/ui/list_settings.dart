@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:sortfood/ui/auth/account_center.dart';
 import 'package:sortfood/ui/setting_page.dart';
+import 'package:provider/provider.dart';
+import 'package:sortfood/provider/user_provider.dart';
 
 class SettingsList extends StatefulWidget {
   const SettingsList({super.key});
@@ -12,12 +13,9 @@ class SettingsList extends StatefulWidget {
 
 class _SettingsList extends State<SettingsList> {
 
-
-  // bool _isDark = false;
   @override
   Widget build(BuildContext context) {
     return Theme(
-      // data: _isDark ? ThemeData.dark() : ThemeData.light(),
       data: ThemeData.light(),
       child: Scaffold(
         body: Center(
@@ -52,26 +50,17 @@ class _SettingsList extends State<SettingsList> {
                     const _CustomListTile(
                         title: "About", icon: Icons.info_outline_rounded),
                     _CustomListTile(
-                        title: "Sign out", 
-                        icon: Icons.exit_to_app_rounded, 
-                        action: (){
-                          
-                        },
-                      ),
+                      title: "Sign out", 
+                      icon: Icons.exit_to_app_rounded, 
+                      action: () async {
+                        final userProvider = Provider.of<UserProvider>(context, listen: false);
+                        await userProvider.clearUser();  
+                        Navigator.pushReplacementNamed(context, '/signIn'); 
+                      },
+                    ),
                   ],
                 ),
-                // const SizedBox(height: 80,),
-                // _SingleSection(
-                //   children: [
-                //     _CustomListTile(
-                //       title: "Back", 
-                //       icon: Icons.arrow_back_ios,
-                //       action: () {
-                //         Navigator.pop(context);
-                //       },
-                //     ),
-                //   ]
-                // ),
+                
               ],
             ),
           ),
@@ -86,7 +75,7 @@ class _CustomListTile extends StatelessWidget {
   final IconData icon;
   final Widget? trailing;
   final Function()? action;
-  // ignore: unused_element
+  
   const _CustomListTile({required this.title, required this.icon, this.trailing, this.action});
 
   @override

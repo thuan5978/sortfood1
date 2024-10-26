@@ -63,7 +63,6 @@ class _WaitingPage extends State<WaitingPage>{
                 ),
                 const SizedBox(height: 50,),
 
-                //loading
                 const Center(child: CircularProgressIndicator(backgroundColor: Colors.transparent, color: Colors.white,),),
               ],
             );

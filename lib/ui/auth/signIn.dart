@@ -1,28 +1,31 @@
-
 import 'package:flutter/material.dart';
-import 'package:quickalert/quickalert.dart';
 import 'package:sortfood/model/aaconst.dart';
 import 'package:sortfood/model/users.dart';
 import 'package:sortfood/ui/auth/signUp.dart';
 import 'package:sortfood/ui/home_page.dart';
+import 'package:sortfood/api/airtableservice.dart';
+import 'package:logger/logger.dart';
 
-class SignIn extends StatefulWidget{
+class SignIn extends StatefulWidget {
   const SignIn({super.key});
 
   @override
   State<SignIn> createState() => _SignIn();
 }
 
-class _SignIn extends State<SignIn>{
-
-  TextEditingController userName = TextEditingController();
-  TextEditingController passWord = TextEditingController();
-
-  final user = Users();
+class _SignIn extends State<SignIn> {
+  final TextEditingController userName = TextEditingController();
+  final TextEditingController passWord = TextEditingController();
+  bool obscurePassword = true; 
+  bool _isLoading = false;
+  final Logger logger = Logger();
+  final AirtableService apiService = AirtableService(); 
 
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    userName.dispose();
+    passWord.dispose();
+    super.dispose();
   }
 
   @override
@@ -30,219 +33,234 @@ class _SignIn extends State<SignIn>{
     return Scaffold(
       appBar: _header(context),
       body: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        physics: const ScrollPhysics(),
         child: _body(),
-      )
+      ),
     );
   }
 
-  //header
-  PreferredSize _header(BuildContext context){
+  // Header
+  PreferredSize _header(BuildContext context) {
     return PreferredSize(
       preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.25),
       child: Container(
-        width: double.infinity,
-        height: double.infinity,
-
         decoration: BoxDecoration(
           color: mainColor,
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
           boxShadow: [
-            BoxShadow(
-              color: mainColor.withOpacity(0.5),
-              spreadRadius: 15,
-              blurRadius: 15,
-            ),
-          ]
+            BoxShadow(color: mainColor.withOpacity(0.5), spreadRadius: 15, blurRadius: 15),
+          ],
         ),
-
         child: const Center(
-          child: Text('WELLCOME BACK', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),),
+          child: Text('WELCOME BACK', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
         ),
-      )
+      ),
     );
   }
 
-  Widget _body(){
+  Widget _body() {
     return Container(
-      width: double.infinity,
-
       padding: const EdgeInsets.only(top: 70),
-
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-
         children: [
           _inputFieldColumn(),
-          const SizedBox(height: 10,),
-
-          //save user
+          const SizedBox(height: 10),
           _saveCheck(),
-
-          //button
           _signInBtn(context),
           _signUpBtn(context),
           _line(),
-          _signInGGBtn(context)
+          _signInGGBtn(context),
         ],
       ),
     );
   }
 
-  Widget _inputFieldColumn(){
+  Widget _inputFieldColumn() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-
       children: [
-        InputFieldCustom(controller: userName, hintText: 'Your username', isObsucre: false),
-        const SizedBox(height: 20,),
-        InputFieldCustom(controller: passWord, hintText: 'Your password', isObsucre: true),
+        _inputField(userName, 'Your username', false),
+        const SizedBox(height: 20),
+        _passwordInputField(),
       ],
+    );
+  }
+
+  Widget _inputField(TextEditingController controller, String hintText, bool isObscure) {
+    return TextField(
+      controller: controller,
+      obscureText: isObscure,
+      decoration: InputDecoration(
+        hintText: hintText,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _passwordInputField() {
+    return TextField(
+      controller: passWord,
+      obscureText: obscurePassword,
+      decoration: InputDecoration(
+        hintText: 'Your password',
+        border: const OutlineInputBorder(),
+        suffixIcon: IconButton(
+          icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+          onPressed: () {
+            setState(() {
+              obscurePassword = !obscurePassword;
+            });
+          },
+        ),
+      ),
     );
   }
 
   bool _isCheck = false;
 
-  Widget _saveCheck(){
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(left: 10),
-      padding: const EdgeInsets.all(10),
-
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-
-        children: [
-          Checkbox(
-            value: _isCheck, 
-            onChanged: (value) => setState(() {
-              _isCheck = value!;
-            })
-          ),
-
-          const Text('Remember me next time.', style: TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.normal),)
-        ],
-      ),
+  Widget _saveCheck() {
+    return Row(
+      children: [
+        Checkbox(value: _isCheck, onChanged: (value) => setState(() => _isCheck = value!)),
+        const Text('Remember me next time.', style: TextStyle(color: Colors.black, fontSize: 17)),
+      ],
     );
   }
 
-  bool _isLoading = false;
-
-  Widget _signInBtn(BuildContext context){
+  Widget _signInBtn(BuildContext context) {
     return GestureDetector(
-      onTap: () async{
-        setState(() {
-          _isLoading=true;
-        });
-        await Future.delayed(const Duration(seconds: 3));
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const HomePage()));
-        setState(() {
-          _isLoading=false;
-        });
-      },
-
+      onTap: _isLoading ? null : () => _attemptSignIn(context),
       child: Container(
-        width: getMainWidth(context)/1.75,
+        width: MediaQuery.of(context).size.width / 1.75,
         margin: const EdgeInsets.all(20),
         padding: const EdgeInsets.all(10),
-
         decoration: BoxDecoration(
           color: mainColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: mainColor, width: 2)
+          border: Border.all(color: mainColor, width: 2),
         ),
-
-        child: !_isLoading?
-          const Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center,)
-          : const Center(child: CircularProgressIndicator()),
+        child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : const Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
       ),
     );
   }
 
-  Widget _signUpBtn(BuildContext context){
+  Future<void> _attemptSignIn(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final email = userName.text.trim();
+    final pass = passWord.text.trim();
+
+    if (email.isEmpty || pass.isEmpty) {
+      _showErrorDialog("Email và mật khẩu không được trống");
+      setState(() {
+        _isLoading = false; 
+      });
+      return;
+    }
+
+    try {
+      List<Users> users = await apiService.fetchUsers();
+      final Users user = users.firstWhere(
+        (user) => user.email == email,
+        orElse: () => Users(userId: null, userName: "Unknown User", email: ""),
+      );
+
+      if (user.userId == null) {
+        _showErrorDialog("Tài khoản không tồn tại");
+        return;
+      } else if (user.password != pass) {
+        _showErrorDialog("Mật khẩu không đúng");
+        return;
+      }
+
+      userName.clear();
+      passWord.clear();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } catch (error) {
+      logger.e("Error during sign-in: $error");
+      _showErrorDialog("Có lỗi xảy ra: ${error.toString()}");
+    } finally {
+      setState(() {
+        _isLoading = false; 
+      });
+    }
+  }
+
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK')),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _signUpBtn(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUp()));
       },
-
       child: Container(
-        width: MediaQuery.of(context).size.width/1.75,
+        width: MediaQuery.of(context).size.width / 1.75,
         margin: const EdgeInsets.all(20),
         padding: const EdgeInsets.all(10),
-
         decoration: BoxDecoration(
-          color: Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey, width: 2)
+          border: Border.all(color: Colors.grey, width: 2),
         ),
-
-        child: const Text('Sign Up', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
+        child: const Text('Sign Up', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
       ),
     );
   }
 
-  Widget _signInGGBtn(BuildContext context){
+  Widget _signInGGBtn(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        
       },
-
       child: Container(
         width: 300,
         margin: const EdgeInsets.all(20),
         padding: const EdgeInsets.all(10),
-
         decoration: BoxDecoration(
-          color: Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey, width: 2)
+          border: Border.all(color: Colors.grey, width: 2),
         ),
-
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          crossAxisAlignment: CrossAxisAlignment.center,
-
           children: [
-            Image.asset('lib/assets/icon/Google__G__logo.png', width: 30, height: 30,),
-            // SizedBox(width: 30,),
-            const Text('Sign in with Google', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center,)
+            Image.asset('lib/assets/icon/Google__G__logo.png', width: 30, height: 30),
+            const Text('Sign in with Google', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  Widget _line(){
+  Widget _line() {
     return Stack(
       alignment: Alignment.center,
-
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.only(left: 20, right: 20),
-
-          child: const Divider(
-            color: Colors.grey, // Màu sắc của đường viền
-            thickness: 1.0,
-          ),
-        ),
-
+        const Divider(color: Colors.grey, thickness: 1.0),
         Container(
           padding: const EdgeInsets.all(3),
-            color: const Color.fromARGB(255, 255, 255, 255),
-            child: const Text(
-              'Or',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 15.0,
-              ),
-            ),
-          ),
-        ],
-      );
+          color: Colors.white,
+          child: const Text('Or', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
   }
 }

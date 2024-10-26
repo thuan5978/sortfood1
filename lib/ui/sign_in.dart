@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sortfood/ui/forgot_password.dart';
-import 'package:sortfood/ui/home_screen.dart'; 
+import 'package:sortfood/ui/home_screen.dart';
 import 'package:sortfood/model/users.dart';
 import 'package:sortfood/api/airtableservice.dart';
+import 'package:sortfood/model/usermodel.dart'; 
+import 'package:sortfood/provider/user_provider.dart'; 
 import 'package:logger/logger.dart';
 
 class SignIn extends StatefulWidget {
@@ -15,8 +18,8 @@ class SignIn extends StatefulWidget {
 class SignInState extends State<SignIn> {
   final TextEditingController emailControl = TextEditingController();
   final TextEditingController passControl = TextEditingController();
-  bool isLoading = false; 
-  bool obscurePassword = true; 
+  bool isLoading = false;
+  bool obscurePassword = true;
   final Logger logger = Logger();
 
   @override
@@ -37,8 +40,16 @@ class SignInState extends State<SignIn> {
       return;
     }
 
+    final RegExp emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email không hợp lệ")),
+      );
+      return;
+    }
+
     setState(() {
-      isLoading = true; 
+      isLoading = true;
     });
 
     try {
@@ -47,14 +58,14 @@ class SignInState extends State<SignIn> {
 
       final Users user = users.firstWhere(
         (user) => user.email == email && user.password == pass,
-        orElse: () => Users(id: null, email: "")
+        orElse: () => Users(userId: null, email: ""),
       );
 
       if (!mounted) return;
 
-      if (user.id == null) {
+      if (user.userId == null) {
         setState(() {
-          isLoading = false; 
+          isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Tài khoản không tồn tại")),
@@ -62,10 +73,21 @@ class SignInState extends State<SignIn> {
         return;
       }
 
+      Provider.of<UserProvider>(context, listen: false).setCurrentUser(
+        UserModel(
+          userId: user.userId!,
+          userName: user.userName!,
+          email: user.email ?? "Unknown",
+          address: user.address ?? "No address",
+          phone: user.phone?? "No phone",
+          img: user.img ?? "No img",
+        ),
+      );
+
       setState(() {
-        isLoading = false; 
+        isLoading = false;
       });
-      emailControl.clear(); 
+      emailControl.clear();
       passControl.clear();
 
       Navigator.pushReplacement(
@@ -76,11 +98,11 @@ class SignInState extends State<SignIn> {
       if (!mounted) return;
 
       setState(() {
-        isLoading = false; 
+        isLoading = false;
       });
-      
+
       logger.e("Error during sign-in: $error");
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Có lỗi xảy ra: ${error.toString()}")),
       );
@@ -143,7 +165,7 @@ class SignInState extends State<SignIn> {
             child: GestureDetector(
               onTap: _forgotPassword,
               child: const Text(
-                "Forgot Password?", 
+                "Forgot Password?",
                 style: TextStyle(color: Color.fromARGB(255, 240, 150, 14)),
                 textAlign: TextAlign.end,
               ),
@@ -151,9 +173,9 @@ class SignInState extends State<SignIn> {
           ),
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: isLoading ? null : _signIn, 
-            child: isLoading 
-                ? const CircularProgressIndicator() 
+            onTap: isLoading ? null : _signIn,
+            child: isLoading
+                ? const CircularProgressIndicator()
                 : const ButtonCustom(text: "Sign In"),
           ),
           const SizedBox(height: 20),
@@ -169,7 +191,7 @@ class SignInState extends State<SignIn> {
       decoration: InputDecoration(
         labelText: title,
         border: const OutlineInputBorder(),
-        suffixIcon: isPassword 
+        suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
                 onPressed: _togglePasswordVisibility,

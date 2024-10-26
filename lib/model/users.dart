@@ -1,15 +1,15 @@
 class Users {
-  int? id;
-  String? name;
+  int? userId;
+  String? userName;
   String? phone;
   String? img;
   String? address;
   String? email;
   String? password;
-
+  
   Users({
-    this.id,
-    this.name,
+    this.userId,
+    this.userName,
     this.phone,
     this.img,
     this.address,
@@ -19,13 +19,26 @@ class Users {
 
   factory Users.fromJson(Map<dynamic, dynamic> json) {
     return Users(
-      id: (json['ID'] is int) ? json['ID'] : null,
-      name: json['Name'] ?? 'No Name',
+      userId: (json['UserID'] is int) ? json['UserID'] : null,
+      userName: json['UserName'] ?? 'No Name',
       phone: json['Phone'] ?? 'No phone',
       img: json['Image'] ?? '',
       address: json['Address'] ?? 'No location',
       email: json['Email'] ?? 'No email',
       password: json['Password'] ?? 'No password',
     );
+  }
+
+  
+  Map<dynamic, dynamic> toJson() {
+    return {
+      'UserID': userId,
+      'UserName': userName,
+      'Phone': phone,
+      'Image': img,
+      'Address': address,
+      'Email': email,
+      'Password': password,
+    };
   }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:sortfood/ui/auth/account_center.dart';
 import 'package:sortfood/ui/history_page.dart';
 import 'package:sortfood/ui/order_page.dart';
-import 'package:sortfood/ui/setting_page.dart';
 import 'package:sortfood/ui/home_screen.dart';
 
 class HomePage extends StatefulWidget {

@@ -12,7 +12,7 @@ class Products {
     this.id,
     this.name = 'Chưa có tên',
     this.description = 'Chưa có mô tả',
-    this.price = 0.0,
+    this.price = 0.000,
     this.quantity = 0,
     this.img = '',
     this.category = 'Chưa có danh mục',
@@ -24,8 +24,10 @@ class Products {
       id: (json['ID'] is int) ? json['ID'] : null,
       name: json['Foodname'] ?? 'Chưa có tên',
       description: json['Description'] ?? 'Chưa có mô tả',
-      price: (json['Price'] is num) ? json['Price'].toDouble() : 0.0,
-      quantity: (json['Quantity'] is int) ? json['Quantity'] : int.tryParse(json['Quantity']?.toString() ?? '0') ?? 0,
+      price: (json['Price'] is num) ? json['Price'].toDouble() : 0.000,
+      quantity: (json['Quantity'] is int) 
+          ? json['Quantity'] 
+          : int.tryParse(json['Quantity']?.toString() ?? '0') ?? 0,
       img: (json['Image'] is List && (json['Image'] as List).isNotEmpty)
           ? json['Image'][0]['url'] ?? ''
           : '',
@@ -34,6 +36,21 @@ class Products {
           ? (json['State'] as List).map((e) => e.toString()).toList()
           : [],
     );
+  }
+
+  Map<dynamic, dynamic> toJson() {
+    return {
+      'ID': id,
+      'Foodname': name,
+      'Description': description,
+      'Price': price,
+      'Quantity': quantity,
+      'Image': [
+        {'url': img}
+      ],
+      'Category': category,
+      'State': state,
+    };
   }
 
   @override
