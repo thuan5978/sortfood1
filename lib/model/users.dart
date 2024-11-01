@@ -6,7 +6,8 @@ class Users {
   String? address;
   String? email;
   String? password;
-  
+  String? position;
+
   Users({
     this.userId,
     this.userName,
@@ -15,6 +16,7 @@ class Users {
     this.address,
     this.email,
     this.password,
+    this.position,
   });
 
   factory Users.fromJson(Map<dynamic, dynamic> json) {
@@ -26,6 +28,7 @@ class Users {
       address: json['Address'] ?? 'No location',
       email: json['Email'] ?? 'No email',
       password: json['Password'] ?? 'No password',
+      position: json['Position'] ?? 'No Position',
     );
   }
 
@@ -39,6 +42,7 @@ class Users {
       'Address': address,
       'Email': email,
       'Password': password,
+      'Position': position,
     };
   }
 }

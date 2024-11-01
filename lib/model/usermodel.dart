@@ -1,11 +1,12 @@
 class UserModel {
-  int userId; 
-  String userName;
-  String phone;
+  int? userId; 
+  String? userName;
+  String? phone;
   String img;
-  String address;
-  String email;
+  String? address;
+  String? email;
   String? password;
+  String? position;
 
   UserModel({
     required this.userId,
@@ -15,6 +16,7 @@ class UserModel {
     this.img = '',
     this.address = 'No location',
     this.password,
+    this.position,
   });
 
   
@@ -27,6 +29,7 @@ class UserModel {
       img: json['Image'] ?? '',
       address: json['Address'] ?? 'No location',
       password: json['Password'],
+      position: json['Position']
     );
   }
 
@@ -40,7 +43,10 @@ class UserModel {
       'Image': img,
       'Address': address,
       'Password': password,
+      'Position': position,
     };
   }
+
+  
 }
 

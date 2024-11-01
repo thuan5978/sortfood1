@@ -5,9 +5,6 @@ import 'package:sortfood/model/products.dart';
 import 'package:sortfood/ui/cart_page.dart';
 import 'package:logger/logger.dart';
 import 'package:sortfood/provider/user_provider.dart';
-import 'package:sortfood/model/usermodel.dart';
-import 'package:sortfood/model/users.dart';
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,45 +17,57 @@ class HomeScreenState extends State<HomeScreen> {
   final TextEditingController searchController = TextEditingController();
   final AirtableService airtableService = AirtableService();
   final Logger logger = Logger();
-  
+
   List<Products> cartProducts = [];
   List<Products> searchResults = [];
   List<String> categories = ['Tất cả', 'Món chính', 'Đồ uống', 'Tráng miệng', 'Trà sữa'];
   String selectedCategory = 'Tất cả';
   bool isLoading = true;
 
-  @override
+   @override
   void initState() {
     super.initState();
-    _initializeUserData();
-    searchProducts();
+    _fetchProducts();
   }
 
-  Future<void> _initializeUserData() async {
-  final userProvider = Provider.of<UserProvider>(context, listen: false);
-  final users = await airtableService.fetchUsers(); 
-
-  if (users.isNotEmpty) {
-    
-    final userModel = convertUsersToUserModel(users[0]); 
-    await userProvider.setCurrentUser(userModel); 
+  Future<void> _fetchProducts() async {
+  try {
+    List<Products> allProducts = await airtableService.fetchProducts();
+    if (mounted) { 
+      setState(() {
+        searchResults = allProducts;
+        isLoading = false;
+      });
+    }
+  } catch (error) {
+    logger.e("Error fetching products: $error");
+    if (mounted) {
+      _showErrorDialog("Không thể tải sản phẩm. Vui lòng thử lại.");
+    }
   }
 }
 
-  UserModel convertUsersToUserModel(Users user) {
-    return UserModel(
-      userId: user.userId ?? 0, 
-      userName: user.userName ?? 'No Name',
-      email: user.email ?? 'No email',
-      phone: user.phone ?? 'No phone',
-      img: user.img ?? '',
-      address: user.address ?? 'No location',
-      password: user.password, 
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Lỗi'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void searchProducts() async {
-    if (!mounted) return;
+    if (!mounted) return; 
 
     setState(() {
       isLoading = true;
@@ -80,12 +89,12 @@ class HomeScreenState extends State<HomeScreen> {
 
       logger.i(results);
     } catch (error) {
-      logger.e("Lỗi khi lấy sản phẩm: $error");
+      logger.e("Lỗi khi tìm kiếm sản phẩm: $error");
     } finally {
-      if (mounted) {
+      if (mounted) { 
         setState(() {
           searchResults = results;
-          isLoading = false;
+          isLoading = false; 
         });
       }
     }
@@ -101,7 +110,7 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final currentUser = userProvider.currentUser; 
+    final currentUser = userProvider.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -118,9 +127,9 @@ class HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(
                     builder: (context) => CartPage(
                       cartProducts: cartProducts,
-                      userId: currentUser.userId ,
-                      userName: currentUser.userName ,
-                      address: currentUser.address ,
+                      userId: currentUser.userId!,
+                      userName: currentUser.userName!,
+                      address: currentUser.address!,
                       paymentMethod: 'Phương thức thanh toán',
                     ),
                   ),
@@ -134,7 +143,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60.0),
+          preferredSize: const Size.fromHeight(50),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
@@ -294,7 +303,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   void addToCart(Products product) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUser = userProvider.currentUser; // Get the current user
+    final currentUser = userProvider.currentUser; 
 
     if (currentUser != null) {
       setState(() {
@@ -312,3 +321,4 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 }
+

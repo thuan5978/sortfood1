@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:sortfood/model/aaconst.dart';
-import 'package:sortfood/model/users.dart';
 import 'package:sortfood/ui/auth/signUp.dart';
 import 'package:sortfood/ui/home_page.dart';
 import 'package:sortfood/api/airtableservice.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
+import 'package:sortfood/provider/user_provider.dart';
+import 'package:sortfood/model/usermodel.dart';
+import 'package:sortfood/model/users.dart';
+import 'package:sortfood/utils/user_utils.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
 
   @override
-  State<SignIn> createState() => _SignIn();
+  State<SignIn> createState() => _SignInState();
 }
 
-class _SignIn extends State<SignIn> {
-  final TextEditingController userName = TextEditingController();
-  final TextEditingController passWord = TextEditingController();
+class _SignInState extends State<SignIn> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passWordController = TextEditingController();
   bool obscurePassword = true; 
   bool _isLoading = false;
   final Logger logger = Logger();
@@ -23,8 +27,8 @@ class _SignIn extends State<SignIn> {
 
   @override
   void dispose() {
-    userName.dispose();
-    passWord.dispose();
+    emailController.dispose();
+    passWordController.dispose();
     super.dispose();
   }
 
@@ -78,7 +82,7 @@ class _SignIn extends State<SignIn> {
   Widget _inputFieldColumn() {
     return Column(
       children: [
-        _inputField(userName, 'Your username', false),
+        _inputField(emailController, 'Your email', false),
         const SizedBox(height: 20),
         _passwordInputField(),
       ],
@@ -98,7 +102,7 @@ class _SignIn extends State<SignIn> {
 
   Widget _passwordInputField() {
     return TextField(
-      controller: passWord,
+      controller: passWordController,
       obscureText: obscurePassword,
       decoration: InputDecoration(
         hintText: 'Your password',
@@ -146,15 +150,15 @@ class _SignIn extends State<SignIn> {
   }
 
   Future<void> _attemptSignIn(BuildContext context) async {
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    final email = userName.text.trim();
-    final pass = passWord.text.trim();
+  final inputEmail = emailController.text.trim();  
+  final pass = passWordController.text.trim();
 
-    if (email.isEmpty || pass.isEmpty) {
-      _showErrorDialog("Email và mật khẩu không được trống");
+    if (inputEmail.isEmpty || pass.isEmpty) {
+      UserUtils.showErrorDialog(context, "Email and password must not be empty.");
       setState(() {
         _isLoading = false; 
       });
@@ -162,30 +166,24 @@ class _SignIn extends State<SignIn> {
     }
 
     try {
-      List<Users> users = await apiService.fetchUsers();
-      final Users user = users.firstWhere(
-        (user) => user.email == email,
-        orElse: () => Users(userId: null, userName: "Unknown User", email: ""),
-      );
+      await UserUtils.initializeUserData(context, inputEmail);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final user = userProvider.currentUser;
 
-      if (user.userId == null) {
-        _showErrorDialog("Tài khoản không tồn tại");
-        return;
-      } else if (user.password != pass) {
-        _showErrorDialog("Mật khẩu không đúng");
+      if (user == null || user.password != pass) {
+        UserUtils.showErrorDialog(context, "Incorrect password.");
         return;
       }
 
-      userName.clear();
-      passWord.clear();
-
+      emailController.clear();
+      passWordController.clear();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
       );
     } catch (error) {
       logger.e("Error during sign-in: $error");
-      _showErrorDialog("Có lỗi xảy ra: ${error.toString()}");
+      UserUtils.showErrorDialog(context, "An error occurred during sign-in. Please try again later.");
     } finally {
       setState(() {
         _isLoading = false; 
@@ -193,21 +191,18 @@ class _SignIn extends State<SignIn> {
     }
   }
 
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Error'),
-          content: Text(message),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK')),
-          ],
-        );
-      },
+  UserModel convertUsersToUserModel(Users user) {
+  return UserModel(
+      userId: user.userId ?? 0,
+      userName: user.userName ?? 'No Name',
+      email: user.email ?? 'No email',
+      phone: user.phone ?? 'No phone',
+      img: user.img ?? '',
+      address: user.address ?? 'No location',
+      password: user.password,
     );
   }
+
 
   Widget _signUpBtn(BuildContext context) {
     return GestureDetector(
@@ -230,37 +225,31 @@ class _SignIn extends State<SignIn> {
   Widget _signInGGBtn(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        // Handle Google Sign-In
       },
       child: Container(
-        width: 300,
+        width: MediaQuery.of(context).size.width / 1.75,
         margin: const EdgeInsets.all(20),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey, width: 2),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Image.asset('lib/assets/icon/Google__G__logo.png', width: 30, height: 30),
-            const Text('Sign in with Google', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
-          ],
-        ),
+        child: const Text('Sign In with Google', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
       ),
     );
   }
 
   Widget _line() {
-    return Stack(
-      alignment: Alignment.center,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Divider(color: Colors.grey, thickness: 1.0),
-        Container(
-          padding: const EdgeInsets.all(3),
-          color: Colors.white,
-          child: const Text('Or', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-        ),
+        Container(width: 100, height: 1, color: Colors.grey),
+        const Text('OR', style: TextStyle(color: Colors.black, fontSize: 20)),
+        Container(width: 100, height: 1, color: Colors.grey),
       ],
     );
   }
+
 }
+

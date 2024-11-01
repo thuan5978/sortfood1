@@ -3,7 +3,6 @@ import 'package:sortfood/model/products.dart';
 import 'package:logger/logger.dart';
 import 'package:sortfood/model/orders.dart';
 import 'package:sortfood/ui/order_detail_page.dart';
-import 'package:sortfood/model/users.dart';
 
 class CartPage extends StatefulWidget {
   final int userId;
@@ -215,7 +214,7 @@ class CartPageState extends State<CartPage> {
 
     final order = Order(
       id: DateTime.now().millisecondsSinceEpoch.toInt(),
-      userId: [widget.userId],
+      userId: widget.userId,
       name: widget.userName,
       address: widget.address,
       dateCreated: DateTime.now(),

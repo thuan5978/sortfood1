@@ -109,4 +109,13 @@ class PaymentPageState extends State<PaymentPage> {
       },
     );
   }
+
+    void navigateToPaymentPage(BuildContext context, OrdersDetail orderDetail) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentPage(orderDetail: orderDetail), 
+      ),
+    );
+  }
 }

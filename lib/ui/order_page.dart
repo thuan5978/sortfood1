@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
-import 'package:provider/provider.dart';
 import 'package:sortfood/model/orders.dart';
-import 'package:sortfood/provider/user_provider.dart';
 import 'package:sortfood/api/airtableservice.dart';
+import 'package:sortfood/ui/order_detail_page.dart';
 
 class OrderPage extends StatefulWidget {
   final bool isLoading;
@@ -18,23 +17,15 @@ class OrderPageState extends State<OrderPage> {
   final Logger logger = Logger();
 
   Future<List<Order>> _getFilteredOrders(BuildContext context) async {
-  final userProvider = Provider.of<UserProvider>(context, listen: false);
-  final currentUserId = userProvider.currentUserId;
-  final AirtableService airtableService = AirtableService();
-  
+    final AirtableService airtableService = AirtableService();
+
     try {
       final orders = await airtableService.fetchOrders();
       logger.i('Fetched Orders: ${orders.map((e) => e.toJson()).toList()}');
-      
-      final int currentUserIdInt = int.tryParse(currentUserId.toString()) ?? -1;
 
       final filteredOrders = orders.where((order) {
-        final isUserMatch = order.userId != null && 
-                            order.userId!.contains(currentUserIdInt);
-        
-        final hasPendingStatus = order.status.contains('Pending'); 
-
-        return isUserMatch && hasPendingStatus;
+        final hasPendingStatus = order.status.contains('Pending');
+        return hasPendingStatus;
       }).toList();
 
       logger.i('Filtered Orders: ${filteredOrders.map((e) => e.toJson()).toList()}');
@@ -45,7 +36,6 @@ class OrderPageState extends State<OrderPage> {
       return [];
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -98,39 +88,42 @@ class OrderPageState extends State<OrderPage> {
   }
 
   Widget _itemOrder(Order order, BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Đơn hàng #${order.id}',
-            style: const TextStyle(
-                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrdersDetailPage(orderId: order.id), // Pass order.id instead
           ),
-          const SizedBox(height: 8),
-          Text('Tổng số sản phẩm: ${order.quantity}',
-              style: const TextStyle(color: Colors.black, fontSize: 16)),
-          Text(
-            'Tổng số tiền: ${order.totalPrice?.toStringAsFixed(3)} VND',
-            style: const TextStyle(color: Colors.orange, fontSize: 16),
+        );
+      },
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                order.id?.toString() ?? 'Unknown', 
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Status: ${order.status}',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Tổng: ${order.totalPrice?.toStringAsFixed(3) ?? '0.000'} VND',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-          Text('Địa chỉ giao hàng: ${order.address}',
-              style: const TextStyle(color: Colors.black, fontSize: 16)),
-          Text(
-            'Ngày tạo: ${order.dateCreated?.toLocal().toString().split(' ')[0] ?? 'N/A'}',
-            style: const TextStyle(color: Colors.black, fontSize: 16),
-          ),
-          Text(
-            'Ngày giao: ${order.deliveryDate?.toLocal().toString().split(' ')[0] ?? 'N/A'}',
-            style: const TextStyle(color: Colors.black, fontSize: 16),
-          ),
-        ],
+        ),
       ),
     );
   }

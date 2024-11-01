@@ -4,21 +4,25 @@ import 'package:sortfood/model/usermodel.dart';
 import 'dart:convert';
 import 'package:logger/logger.dart';
 import 'package:sortfood/model/orders.dart';
+import 'package:sortfood/model/users.dart';
+import 'package:sortfood/api/airtableservice.dart';
 
 class UserProvider with ChangeNotifier {
   UserModel? _currentUser;
+  Users? _user;
 
   UserModel? get currentUser => _currentUser;
-
+  Users? get user => _user; 
   bool get isLoggedIn => _currentUser != null;
 
   final Logger logger = Logger();
-
   int? get currentUserId => _currentUser?.userId;
-
   List<Order> orders = [];
+  final AirtableService airtableService = AirtableService();
+  
+  bool _isLoading = false;
 
-  //bool isAdmin = false;
+  bool get isLoading => _isLoading;
 
   void setOrders(List<Order> newOrders) {
     orders = newOrders;
@@ -30,27 +34,29 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // void toggleAdminStatus(bool status) {
-  // isAdmin = status;
-  //  notifyListeners();
-  // }
-
-  Future<void> loadUserFromLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userData = prefs.getString('currentUser');
-    if (userData != null) {
-      try {
-        logger.i("Loading user data from SharedPreferences.");
-        _currentUser = UserModel.fromJson(json.decode(userData));
+      Future<void> loadUserData(int? userId) async {
+      if (userId != null) {
+        _isLoading = true; 
         notifyListeners();
-        logger.i("User data loaded successfully: ${_currentUser?.toJson()}");
-      } catch (e) {
-        logger.e("Error loading user from SharedPreferences: $e");
+        
+        try {
+          Users? fetchedUser = await airtableService.fetchUserById(userId);
+          if (fetchedUser != null) {
+            _user = fetchedUser; 
+            notifyListeners();
+          } else {
+            logger.e('User not found for UserID: $userId');
+          }
+        } catch (e) {
+          logger.e('Error fetching user data: $e');
+        } finally {
+          _isLoading = false; 
+          notifyListeners();
+        }
+      } else {
+        logger.e('Invalid userId: $userId');
       }
-    } else {
-      logger.i("No user data found in SharedPreferences.");
     }
-  }
 
   Future<void> setCurrentUser(UserModel user) async {
     _currentUser = user;
@@ -67,6 +73,7 @@ class UserProvider with ChangeNotifier {
 
   Future<void> clearUser() async {
     _currentUser = null;
+    _user = null; 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('currentUser');
     notifyListeners();

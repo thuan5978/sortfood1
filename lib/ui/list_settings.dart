@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:sortfood/ui/auth/waiting.dart';
 import 'package:sortfood/ui/setting_page.dart';
 import 'package:provider/provider.dart';
 import 'package:sortfood/provider/user_provider.dart';
@@ -55,7 +56,10 @@ class _SettingsList extends State<SettingsList> {
                       action: () async {
                         final userProvider = Provider.of<UserProvider>(context, listen: false);
                         await userProvider.clearUser();  
-                        Navigator.pushReplacementNamed(context, '/signIn'); 
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WaitingPage()),
+                        );
                       },
                     ),
                   ],

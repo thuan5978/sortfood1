@@ -16,6 +16,7 @@ void main() async {
     routes: {
       '/': (context) =>const HomeScreen(),
       '/signIn': (context) =>const SignIn(),  
+      '/waiting': (context) => const WaitingPage(),
     },
   );
 

@@ -92,19 +92,37 @@ class AirtableService {
     return _localOrdersHistory; 
   }
   
-    Future<OrdersDetail> fetchOrdersDetailById(int id) async {
-    if (_localOrdersDetail.isEmpty) {
-      await fetchOrdersDetail(); 
+       Future<OrdersDetail> fetchOrdersDetailById(int? id) async {
+      
+      if (_localOrdersDetail.isEmpty) {
+        await fetchOrdersDetail(); 
+      }
+
+      final url = Uri.parse(
+        'https://api.airtable.com/v0/appIgT6YVxKDFM1Ab/tblhxZuxM5WZBjgBT?filterByFormula={OrderdetailID}="$id"'
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['records'].isNotEmpty) {
+          
+          return OrdersDetail.fromJson(data['records'][0]['fields']);
+        } else {
+          throw Exception('No order details found for ID: $id');
+        }
+      } else {
+        throw Exception('Failed to fetch order details: ${response.statusCode}');
+      }
     }
 
-    
-    final order = _localOrdersDetail.firstWhere(
-      (order) => order.id == id,
-      orElse: () => throw Exception('Order with ID $id not found in local data.'),
-    );
-
-    return order;
-  }
 
 
   Future<List<Products>> fetchProductsByCartID(List<int> cartIDs) async {
@@ -141,9 +159,13 @@ class AirtableService {
     return _localProductsDetail; 
   }
 
-  Future<List<T>> _fetchData<T>(String tableId, T Function(Map<dynamic, dynamic>) fromJson) async {
+  Future<Map<dynamic, dynamic>> fetchRecordById(String recordId, String tableId) async {
+  
+  final url = 'https://api.airtable.com/v0/$baseId/$tableId/$recordId';
+  
+  try {
     final response = await http.get(
-      Uri.parse('https://api.airtable.com/v0/$baseId/$tableId'),
+      Uri.parse(url),
       headers: {
         'Authorization': 'Bearer $apiKey',
         'Content-Type': 'application/json',
@@ -152,14 +174,50 @@ class AirtableService {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      if (data['records'] is List) {
-        return (data['records'] as List)
-            .map((record) => fromJson(record['fields']))
-            .toList();
-      }
+      return data['fields'];
     } else {
-      logger.e('Error fetching data: ${response.statusCode} ${response.reasonPhrase}');
+      logger.e('Error fetching record: ${response.statusCode} ${response.reasonPhrase}');
     }
+  } catch (e) {
+    logger.e('Exception: $e');
+  }
+
+  return {};
+}
+
+
+
+
+  Future<List<T>> _fetchData<T>(
+    String tableId, 
+    T Function(Map<dynamic, dynamic>) fromJson
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.airtable.com/v0/$baseId/$tableId'),
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['records'] is List) {
+          return (data['records'] as List)
+              .map((record) => fromJson(record['fields']))
+              .toList();
+        } else {
+          logger.e('Unexpected data format: ${data.toString()}');
+        }
+      } else {
+        logger.e('Error fetching data: ${response.statusCode} ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      logger.e('Exception occurred: $e');
+    }
+    
     return [];
   }
 
@@ -204,27 +262,82 @@ class AirtableService {
   }
 
    Future<void> updateUser(Users user) async {
-    final url = 'https://api.airtable.com/v0/$baseId/$usersTableId/${user.userId}'; 
-    final response = await http.patch(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $apiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'fields': {
-          'Username': user.userName,
-          'Email': user.email,
-          'Password': user.password,
-        },
-      }),
-    );
+  
+  final queryUrl = 'https://api.airtable.com/v0/$baseId/$usersTableId?filterByFormula={UserID}=${user.userId}';
+  final queryResponse = await http.get(
+    Uri.parse(queryUrl),
+    headers: {
+      'Authorization': 'Bearer $apiKey',
+    },
+  );
 
-    if (response.statusCode == 200) {
-      logger.i('User updated successfully: ${response.body}');
+  if (queryResponse.statusCode == 200) {
+    final data = jsonDecode(queryResponse.body);
+      if (data['records'].isNotEmpty) {
+        final recordId = data['records'][0]['id'];
+        final updateUrl = 'https://api.airtable.com/v0/$baseId/$usersTableId/$recordId';
+        final updateResponse = await http.patch(
+          Uri.parse(updateUrl),
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'fields': {
+              'UserName': user.userName,
+              'Email': user.email,
+              'Password': user.password,
+            },
+          }),
+        );
+
+        if (updateResponse.statusCode == 200) {
+          logger.i('Người dùng đã được cập nhật thành công: ${updateResponse.body}');
+        } else {
+          logger.e('Cập nhật người dùng không thành công: ${updateResponse.statusCode} ${updateResponse.reasonPhrase}');
+          logger.e('Body: ${updateResponse.body}'); 
+        }
+      } else {
+        logger.e('Không tìm thấy người dùng với UserID: ${user.userId}');
+      }
     } else {
-      logger.e('Failed to update user: ${response.statusCode} ${response.reasonPhrase}');
-      throw Exception('Failed to update user: ${response.body}');
+      logger.e('Không thể truy xuất dữ liệu người dùng: ${queryResponse.statusCode} ${queryResponse.reasonPhrase}');
+    }
+  }
+
+  Future<Users?> fetchUserById(int? userId) async {
+  
+  final queryUrl = 'https://api.airtable.com/v0/$baseId/$usersTableId?filterByFormula={UserID}="$userId"';
+  
+  final queryResponse = await http.get(
+    Uri.parse(queryUrl),
+    headers: {
+      'Authorization': 'Bearer $apiKey',
+    },
+  );
+
+    if (queryResponse.statusCode == 200) {
+      final data = jsonDecode(queryResponse.body);
+      
+      if (data['records'].isNotEmpty) {
+        
+        final record = data['records'][0];
+        final fields = record['fields'];
+        return Users(
+          userId: userId,
+          userName: fields['UserName'] ?? '',
+          email: fields['Email'] ?? '',
+          phone: fields['Phone'] ?? '',
+          password: fields['Password'] ?? '',
+          address: fields['Address'] ?? '',
+        );
+      } else {
+        logger.e('Không tìm thấy người dùng với UserID: $userId');
+        return null; 
+      }
+    } else {
+      logger.e('Không thể truy xuất dữ liệu người dùng: ${queryResponse.statusCode} ${queryResponse.reasonPhrase}');
+      return null; 
     }
   }
 }
