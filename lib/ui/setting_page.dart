@@ -26,6 +26,7 @@ class SettingPageState extends State<SettingPage> {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         title: const Text('Cài đặt', style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -39,37 +40,39 @@ class SettingPageState extends State<SettingPage> {
                     radius: 50,
                     backgroundImage: NetworkImage(avatar),
                   ),
+                  const SizedBox(height: 8),
                   TextButton.icon(
                     onPressed: _changeAvatar,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Cập nhật ảnh đại diện'),
+                    icon: const Icon(Icons.camera_alt, color: Colors.white),
+                    label: const Text('Cập nhật ảnh đại diện', style: TextStyle(color: Colors.white)),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                    ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 20),
             const Divider(),
             _buildTextField('Tên', nameController),
             _buildTextField('Email', emailController),
             _buildTextField('Số điện thoại', phoneController),
             _buildTextField('Địa chỉ giao hàng', addressController),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _updatePersonalInfo,
-              child: const Text('Lưu thông tin cá nhân'),
-            ),
+            _buildElevatedButton('Lưu thông tin cá nhân', _updatePersonalInfo),
+            const SizedBox(height: 20),
             const Divider(),
             _buildTextField('Mật khẩu hiện tại', currentPasswordController, obscureText: true),
             _buildTextField('Mật khẩu mới', newPasswordController, obscureText: true),
             _buildTextField('Xác nhận mật khẩu mới', confirmPasswordController, obscureText: true),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _changePassword,
-              child: const Text('Thay đổi mật khẩu'),
-            ),
+            _buildElevatedButton('Thay đổi mật khẩu', _changePassword),
+            const SizedBox(height: 20),
             const Divider(),
             SwitchListTile(
-              title: const Text('Bật thông báo đẩy'),
+              title: const Text('Bật thông báo đẩy', style: TextStyle(fontSize: 16)),
               value: notificationsEnabled,
+              activeColor: Colors.orange,
               onChanged: (value) {
                 setState(() {
                   notificationsEnabled = value;
@@ -77,13 +80,7 @@ class SettingPageState extends State<SettingPage> {
               },
             ),
             const Divider(),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              onPressed: _deleteAccount,
-              child: const Text('Xóa tài khoản'),
-            ),
+            _buildElevatedButton('Xóa tài khoản', _deleteAccount, color: Colors.red),
           ],
         ),
       ),
@@ -99,8 +96,22 @@ class SettingPageState extends State<SettingPage> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.grey[200],
         ),
       ),
+    );
+  }
+
+  Widget _buildElevatedButton(String text, VoidCallback onPressed, {Color color = Colors.orange}) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 16)),
     );
   }
 

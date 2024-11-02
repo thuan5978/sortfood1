@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:sortfood/model/ordersdetail.dart';
 
 class StripePaymentPage extends StatelessWidget {
-  final OrdersDetail orderDetail; 
+  final double totalPrice; 
 
-  const StripePaymentPage({super.key, required this.orderDetail}); 
+  const StripePaymentPage({super.key, required this.totalPrice}); 
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +12,7 @@ class StripePaymentPage extends StatelessWidget {
         title: const Text('Stripe Payment'),
       ),
       body: Center(
-        child: Text('ID đơn hàng: ${orderDetail.id}'), 
+        child: Text('Tổng số tiền: $totalPrice VND'), 
       ),
     );
   }

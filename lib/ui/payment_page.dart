@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sortfood/ui/payment_choose/stripe_page.dart';
-import 'package:sortfood/model/ordersdetail.dart';
 
 enum PaymentMethod { cashOnDelivery, bankTransfer, paypal, stripe }
 
 class PaymentPage extends StatefulWidget {
-  final OrdersDetail orderDetail;
+  final double totalPrice; 
 
-  const PaymentPage({super.key, required this.orderDetail});
+  const PaymentPage({super.key, required this.totalPrice}); 
 
   @override
   PaymentPageState createState() => PaymentPageState();
@@ -74,20 +73,25 @@ class PaymentPageState extends State<PaymentPage> {
   }
 
   void _handlePayment() {
+    String message;
+
     if (selectedPaymentMethod == PaymentMethod.bankTransfer) {
-      _showDialog('Bank Transfer', 'Bạn đã chọn Bank Transfer.');
+      message = 'Bạn đã chọn Bank Transfer.';
     } else if (selectedPaymentMethod == PaymentMethod.paypal) {
-      _showDialog('PayPal', 'Bạn đã chọn PayPal.');
+      message = 'Bạn đã chọn PayPal.';
     } else if (selectedPaymentMethod == PaymentMethod.stripe) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => StripePaymentPage(orderDetail: widget.orderDetail), 
+          builder: (context) => StripePaymentPage(totalPrice: widget.totalPrice), 
         ),
       );
+      return; 
     } else {
-      _showDialog('Confirmation', 'Bạn đã chọn Cash on Delivery.');
+      message = 'Bạn đã chọn Cash on Delivery.';
     }
+
+    _showDialog('Confirmation', '$message Tổng số tiền: ${widget.totalPrice} VND');
   }
 
   void _showDialog(String title, String content) {
@@ -110,11 +114,11 @@ class PaymentPageState extends State<PaymentPage> {
     );
   }
 
-    void navigateToPaymentPage(BuildContext context, OrdersDetail orderDetail) {
+  void navigateToPaymentPage(BuildContext context, double totalPrice) { 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PaymentPage(orderDetail: orderDetail), 
+        builder: (context) => PaymentPage(totalPrice: totalPrice), 
       ),
     );
   }

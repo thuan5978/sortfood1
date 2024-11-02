@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:sortfood/model/ordersdetail.dart';
 import 'package:sortfood/api/airtableservice.dart';
 import 'package:logger/logger.dart';
-import 'package:sortfood/ui/payment_page.dart'; 
 
-class OrdersDetailPage extends StatefulWidget {
+class OrdersDetailHistoryPage extends StatefulWidget {
   final int? orderdetailID;
-  const OrdersDetailPage({super.key, required this.orderdetailID});
+  final int? orderHistoryID; 
+  const OrdersDetailHistoryPage({super.key, required this.orderdetailID, required this.orderHistoryID});
 
   @override
-  OrdersDetailPageState createState() => OrdersDetailPageState();
+  OrdersDetailHistoryPageState createState() => OrdersDetailHistoryPageState();
 }
 
-class OrdersDetailPageState extends State<OrdersDetailPage> {
+class OrdersDetailHistoryPageState extends State<OrdersDetailHistoryPage> {
   OrdersDetail? orderDetail; 
   bool isLoading = true; 
   final Logger logger = Logger(); 
-  double totalPrice = 0.0;
 
   @override
   void initState() {
@@ -28,22 +27,22 @@ class OrdersDetailPageState extends State<OrdersDetailPage> {
     try {
       final airtableService = AirtableService(); 
       final orderdetailID = widget.orderdetailID;
+      final orderhistoryID = widget.orderHistoryID;
 
-      if (orderdetailID != null) {
-        orderDetail = await airtableService.fetchOrdersDetailById(orderdetailID); 
+      if (orderdetailID != null && orderhistoryID != null) {
+        orderDetail = await airtableService.fetchOrdersDetailHistoryById(orderdetailID, orderhistoryID); 
         logger.i('Fetched Order Detail: ${orderDetail.toString()}'); 
 
         if (orderDetail == null) {
-          logger.w('Order not found or products are empty: orderdetailID=$orderdetailID');
+          logger.w('Order not found or products are empty: orderdetailID=$orderdetailID, orderHistoryID=$orderhistoryID');
         } else {
           logger.i('Order detail fetched: ${orderDetail!.id}'); 
-          _calculateTotalPrice(); 
         }
       } else {
         logger.e('Order ID or History ID is null'); 
       }
     } catch (e) {
-      logger.e('Error fetching order detail for IDs: orderdetailID=${widget.orderdetailID}: $e'); 
+      logger.e('Error fetching order detail for IDs: orderdetailID=${widget.orderdetailID}, orderHistoryID=${widget.orderHistoryID}: $e'); 
       ScaffoldMessenger.of(context).showSnackBar(const
         SnackBar(content: Text('Lỗi khi tải chi tiết đơn hàng. Vui lòng thử lại.')), 
       );
@@ -51,18 +50,6 @@ class OrdersDetailPageState extends State<OrdersDetailPage> {
       setState(() {
         isLoading = false; 
       });
-    }
-  }
-
-  void _calculateTotalPrice() {
-    totalPrice = 0.0;
-    final productQuantities = orderDetail?.productquantity ?? [];
-    final productPrices = orderDetail?.productPrices ?? [];
-
-    for (int i = 0; i < productQuantities.length; i++) {
-      if (i < productPrices.length) {
-        totalPrice += productQuantities[i] * productPrices[i];
-      }
     }
   }
 
@@ -81,7 +68,7 @@ class OrdersDetailPageState extends State<OrdersDetailPage> {
     final productImages = orderDetail.productImages ?? [];
     final productPrices = orderDetail.productPrices ?? [];
     final productNames = orderDetail.productName ?? [];
-    final productQuantities = orderDetail.productquantity ?? [];
+    final productQuantities = orderDetail.productquantity; 
 
     return ListView.builder(
       shrinkWrap: true,
@@ -92,7 +79,7 @@ class OrdersDetailPageState extends State<OrdersDetailPage> {
         final productImage = index < productImages.length ? productImages[index] : '';
         final productPrice = index < productPrices.length ? productPrices[index] : 0.0;
         final productName = index < productNames.length ? productNames[index] : '';
-        final productQuantity = index < productQuantities.length ? productQuantities[index] : 0; 
+        final productQuantity = (productQuantities != null && index < productQuantities.length) ? productQuantities[index] : 0; 
 
         return Padding(
           padding: const EdgeInsets.all(10),
@@ -147,60 +134,11 @@ class OrdersDetailPageState extends State<OrdersDetailPage> {
                   style: const TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove),
-                      color: Colors.orange, 
-                      onPressed: () {
-                        setState(() {
-                          if (productQuantity > 0) {
-                            orderDetail!.productquantity![index]--; 
-                            _calculateTotalPrice();
-                          }
-                        });
-                      },
-                    ),
-                    Text('Quantity: $productQuantity', style: const TextStyle(fontSize: 18)), 
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      color: Colors.orange, 
-                      onPressed: () {
-                        setState(() {
-                          orderDetail!.productquantity![index]++; 
-                          _calculateTotalPrice(); 
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                Text('Quantity: $productQuantity', style: const TextStyle(fontSize: 18)), 
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentButton() {
-    return ElevatedButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentPage(totalPrice: totalPrice),
-          ),
-        );
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange, 
-        padding: const EdgeInsets.symmetric(vertical: 15), 
-        minimumSize: const Size(double.infinity, 50),
-      ),
-      child: const Text(
-        'Thanh toán',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -216,29 +154,21 @@ class OrdersDetailPageState extends State<OrdersDetailPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProductSection(),  
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-            if (!isLoading && orderDetail != null) ...[
-              Text(
-                'Tổng số tiền: ${totalPrice.toStringAsFixed(3)} VND', 
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+        child: SingleChildScrollView( 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProductSection(),  
               const SizedBox(height: 20),
-              _buildPaymentButton(), 
+              if (!isLoading && orderDetail != null) ...[
+                Text(
+                  'Tổng số tiền: ${orderDetail!.totalPrice?.toStringAsFixed(3)} VND',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -187,11 +187,11 @@ class CartPageState extends State<CartPage> {
               TextButton(
                 onPressed: () {
                   final order = _createOrder(totalPrice);
-                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop(); 
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => OrdersDetailPage(orderId: order.id),
+                      builder: (context) => OrdersDetailPage(orderdetailID: order.id),
                     ),
                   );
                 },

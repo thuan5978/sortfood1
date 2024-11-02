@@ -7,8 +7,9 @@ class OrdersDetail {
   String? name;
   DateTime? dateCreated;
   int? cartId; 
-  int? quantity;
+  List<int>? productquantity;
   List<int>? productIds;
+  List<String>? productName;
   List<String>? productImages;
   List<double>? productPrices;
   double? totalPrice;
@@ -17,6 +18,7 @@ class OrdersDetail {
   List<String> paymentMethod;
   List<String> status;
   List<Products> products;
+  int? orderHistoryID;
 
   OrdersDetail({
     this.id,
@@ -25,65 +27,58 @@ class OrdersDetail {
     this.name,
     this.dateCreated,
     this.cartId, 
-    this.quantity,
-    this.productIds = const [],
-    this.productImages = const [],
-    this.productPrices = const [],
+    this.productquantity,
+    this.productIds, 
+    this.productName,
+    this.productImages, 
+    this.productPrices, 
     this.totalPrice,
     this.deliveryDate,
     this.cartQuantity,
     this.paymentMethod = const [], 
     List<String>? status,
     List<Products>? products,
+    this.orderHistoryID,
   })  : status = status ?? [],
         products = products ?? [];
 
-  factory OrdersDetail.fromJson(Map<dynamic, dynamic> json) {
+ factory OrdersDetail.fromJson(Map<dynamic, dynamic> json) {
     return OrdersDetail(
       id: json['OrderdetailID'] is String 
           ? int.tryParse(json['OrderdetailID']) 
           : json['OrderdetailID'] as int?,
-      userId: json['UserI'] is List<dynamic>
+      userId: json['UserI'] is List
           ? (json['UserI'].isNotEmpty ? int.tryParse(json['UserI'][0].toString()) : null)
           : int.tryParse(json['UserI']?.toString() ?? '0'),
-      orderId: json['Order'] is int ? json['Order'] : null,
-      name: json['UserName'] is List<dynamic> 
+      orderId: json['Order'] as int?,
+      name: json['UserName'] is List 
           ? (json['UserName'].isNotEmpty ? json['UserName'][0].toString() : null)
           : json['UserName'] as String?,
-      dateCreated: json['DateCreated'] is List<dynamic> 
+      dateCreated: json['DateCreated'] is List 
           ? (json['DateCreated'].isNotEmpty ? DateTime.tryParse(json['DateCreated'][0].toString()) : null)
           : DateTime.tryParse(json['DateCreated'] as String? ?? ''),
       cartId: json['CartID'] is List && json['CartID'].isNotEmpty 
           ? int.tryParse(json['CartID'][0].toString()) 
           : json['CartID'] as int?,
-      quantity: json['ProductsQuantity'] is int
-          ? json['ProductsQuantity']
-          : int.tryParse(json['ProductsQuantity']?.toString() ?? '0') ?? 0,
-      productIds: (json['ProductIDs'] as List<dynamic>?)
-          ?.map((e) => int.tryParse(e.toString()) ?? 0)
-          .toList(),
-      productImages: (json['Image'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      productPrices: (json['ProductsPrice'] as List<dynamic>?)
-          ?.map((e) => (e as num).toDouble())
-          .toList(),
-      totalPrice: (json['TotalPrice'] is List ? double.tryParse(json['TotalPrice'][0].toString()) : (json['TotalPrice'] as num?)?.toDouble()),
-      deliveryDate: json['DeliveryDate'] is List<dynamic> 
+      productquantity: (json['ProductsQuantity'] as List?)?.map((e) => int.tryParse(e.toString()) ?? 0).toList() ?? [],
+      productIds: (json['ProductIDs'] as List?)?.map((e) => int.tryParse(e.toString()) ?? 0).toList() ?? [],
+      productName: (json['ProductName'] as List?)?.map((e) => e.toString()).toList() ?? ['Unnamed Product'],
+      productImages: (json['ProductImages'] as List?)
+     ?.map((e) => e['url'].toString())
+      .toList() ?? [],
+      productPrices: (json['ProductsPrice'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [],
+      totalPrice: json['TotalPrice'] is List 
+          ? double.tryParse(json['TotalPrice'][0].toString()) 
+          : (json['TotalPrice'] as num?)?.toDouble(),
+      deliveryDate: json['DeliveryDate'] is List 
           ? (json['DeliveryDate'].isNotEmpty ? DateTime.tryParse(json['DeliveryDate'][0].toString()) : null)
           : DateTime.tryParse(json['DeliveryDate'] as String? ?? ''),
-      paymentMethod: (json['PaymentMethod'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ?? [],
-      status: (json['Status'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ?? [],
-      products: (json['Products'] as List<dynamic>?)
-          ?.map((e) => Products.fromJson(e))
-          .toList() ?? [],
+      paymentMethod: (json['PaymentMethod'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      status: (json['Status'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      products: (json['Products'] as List?)?.map((e) => Products.fromJson(e)).toList() ?? [],
+      orderHistoryID: int.tryParse(json['OrderHistoryID']?.toString() ?? '0'),
     );
   }
-
 
   Map<dynamic, dynamic> toJson() {
     return {
@@ -93,7 +88,7 @@ class OrdersDetail {
       'UserName': name,
       'DateCreated': dateCreated?.toIso8601String(),
       'CartID': cartId, 
-      'ProductsQuantity': quantity,
+      'ProductsQuantity': productquantity,
       'ProductIDs': productIds,
       'Image': productImages,
       'ProductsPrice': productPrices,
@@ -102,6 +97,7 @@ class OrdersDetail {
       'PaymentMethod': paymentMethod,
       'Status': status,
       'Products': products.map((p) => p.toJson()).toList(),
+      'OrderHistoryID': orderHistoryID,
     };
   }
 }

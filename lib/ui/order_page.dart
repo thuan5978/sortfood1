@@ -45,7 +45,12 @@ class OrderPageState extends State<OrderPage> {
         backgroundColor: Colors.orange,
         title: const Text('Đơn hàng', style: TextStyle(color: Colors.white)),
       ),
-      body: widget.isLoading ? _buildLoadingIndicator() : _buildOrderSection(context),
+      body: Container(
+        color: Colors.orange[50],
+        child: widget.isLoading
+            ? _buildLoadingIndicator()
+            : _buildOrderSection(context),
+      ),
     );
   }
 
@@ -88,12 +93,19 @@ class OrderPageState extends State<OrderPage> {
   }
 
   Widget _itemOrder(Order order, BuildContext context) {
+    Icon orderStatusIcon;
+    if (order.status.contains('Pending')) {
+      orderStatusIcon = const Icon(Icons.hourglass_empty, color: Colors.orange);
+    } else {
+      orderStatusIcon = const Icon(Icons.check_circle, color: Colors.green);
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => OrdersDetailPage(orderId: order.id), // Pass order.id instead
+            builder: (context) => OrdersDetailPage(orderdetailID: order.id),
           ),
         );
       },
@@ -104,22 +116,33 @@ class OrderPageState extends State<OrderPage> {
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                order.id?.toString() ?? 'Unknown', 
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: orderStatusIcon,
               ),
-              const SizedBox(height: 5),
-              Text(
-                'Status: ${order.status}',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                'Tổng: ${order.totalPrice?.toStringAsFixed(3) ?? '0.000'} VND',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.id?.toString() ?? 'Unknown',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Status: ${order.status}',
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Tổng: ${order.totalPrice?.toStringAsFixed(3) ?? '0.000'} VND',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

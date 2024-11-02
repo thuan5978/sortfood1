@@ -41,7 +41,7 @@ class StripeService {
                 },
                 'unit_amount': productPrice.toInt(), 
               },
-              'quantity': orderDetail.quantity ?? 1,
+              'quantity': orderDetail.cartQuantity ?? 1,
             }
           ],
           'shipping_address_collection': {

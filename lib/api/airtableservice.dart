@@ -92,7 +92,36 @@ class AirtableService {
     return _localOrdersHistory; 
   }
   
-       Future<OrdersDetail> fetchOrdersDetailById(int? id) async {
+  Future<OrdersDetail> fetchOrdersDetailHistoryById(int? orderdetailID, int? orderHistoryID) async {
+    if (_localOrdersDetail.isEmpty) {
+      await fetchOrdersDetail(); 
+    }
+
+    final url = Uri.parse(
+      'https://api.airtable.com/v0/appIgT6YVxKDFM1Ab/tblhxZuxM5WZBjgBT?filterByFormula=AND({OrderdetailID}="$orderdetailID",{OrderHistoryID}="$orderHistoryID")'
+    );
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['records'].isNotEmpty) {
+        return OrdersDetail.fromJson(data['records'][0]['fields']);
+      } else {
+        throw Exception('No order details found for IDs: orderdetailID=$orderdetailID, orderHistoryID=$orderHistoryID');
+      }
+    } else {
+      throw Exception('Failed to fetch order details: ${response.statusCode}');
+    }
+  }
+
+  Future<OrdersDetail> fetchOrdersDetailById(int? id) async {
       
       if (_localOrdersDetail.isEmpty) {
         await fetchOrdersDetail(); 
