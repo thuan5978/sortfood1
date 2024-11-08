@@ -6,51 +6,30 @@ import 'package:sortfood/api/airtableservice.dart';
 import 'package:logger/logger.dart';
 
 class StripeService {
-  final String apiKey = dotenv.env['STRIPE_SECRET_KEY'] ?? '';
+  final String stripeSecretKey = dotenv.env['STRIPE_SECRET_KEY'] ?? '';
+  final String stripePublishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
   final Logger logger = Logger();
 
-  Future<Map<dynamic, dynamic>> createPaymentLink(OrdersDetail orderDetail) async {
-    if (apiKey.isEmpty) {
+  Future<Map<dynamic, dynamic>> createPaymentIntent(OrdersDetail orderDetail) async {
+    if (stripeSecretKey.isEmpty) {
       throw Exception('Stripe API key is not configured.');
     }
 
     try {
-      
-      String productImage = orderDetail.productImages != null && orderDetail.productImages!.isNotEmpty
-          ? orderDetail.productImages![0]
-          : ''; 
-
-      double productPrice = orderDetail.productPrices != null && orderDetail.productPrices!.isNotEmpty
-          ? orderDetail.productPrices![0] * 100 
-          : 0.0; 
+      double productPrice = (orderDetail.productPrices?.isNotEmpty == true ? orderDetail.productPrices![0] : 0.0) * 100;
 
       final response = await http.post(
-        Uri.parse('https://api.stripe.com/v1/payment_links'),
+        Uri.parse('https://api.stripe.com/v1/payment_intents'),
         headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $stripeSecretKey',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: json.encode({
-          'line_items': [
-            {
-              'price_data': {
-                'currency': 'vnd',
-                'product_data': {
-                  'name': orderDetail.name ?? 'Unknown Product',
-                  'images': [productImage],
-                },
-                'unit_amount': productPrice.toInt(), 
-              },
-              'quantity': orderDetail.cartQuantity ?? 1,
-            }
-          ],
-          'shipping_address_collection': {
-            'allowed_countries': ['VN'],
-          },
-          'metadata': {
-            'order_id': orderDetail.id.toString(),
-          },
-        }),
+        body: {
+          'amount': productPrice.toInt().toString(),
+          'currency': 'vnd',
+          'payment_method_types[]': 'card',
+          'metadata[order_id]': orderDetail.id.toString(),
+        },
       );
 
       if (response.statusCode == 200) {
@@ -59,7 +38,8 @@ class StripeService {
         throw Exception('Stripe API error: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      throw Exception('Error creating Stripe Payment Link: $e');
+      logger.e('Error creating Stripe Payment Intent: $e');
+      throw Exception('Error creating Stripe Payment Intent: $e');
     }
   }
 
@@ -68,12 +48,11 @@ class StripeService {
       AirtableService airtableService = AirtableService();
       OrdersDetail orderDetail = await airtableService.fetchOrdersDetailById(orderDetailId);
 
-      StripeService stripeService = StripeService();
-      final paymentLinkData = await stripeService.createPaymentLink(orderDetail);
-
-      final paymentLinkUrl = paymentLinkData['url'];
-      logger.i('Payment Link: $paymentLinkUrl');
+      final paymentIntentData = await createPaymentIntent(orderDetail);
+      final clientSecret = paymentIntentData['client_secret'];
+      logger.i('Payment Intent Client Secret: $clientSecret');
     } catch (e) {
+      logger.e('Error processing payment: $e');
       throw Exception('Error processing payment: $e');
     }
   }

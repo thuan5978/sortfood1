@@ -60,6 +60,7 @@ class UserUtils {
       img: user.img ?? '',
       address: user.address ?? 'No location',
       password: user.password,
+      position: user.position ?? 'No position'
     );
   }
 }
