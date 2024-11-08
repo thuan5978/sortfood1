@@ -26,6 +26,12 @@ class UserUtils {
       } else {
         final userModel = convertUsersToUserModel(matchingUser);
         await userProvider.setCurrentUser(userModel);
+
+        if (userModel.position?.toLowerCase() == 'admin') {
+          Logger().i('User is an admin');
+        } else {
+          Logger().i('User is not an admin');
+        }
       }
     } catch (e) {
       Logger().e("Error initializing user data: $e");
@@ -38,12 +44,12 @@ class UserUtils {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title:const Text("Lỗi"),
+          title: const Text("Lỗi"),
           content: Text(message),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child:const Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -64,4 +70,3 @@ class UserUtils {
     );
   }
 }
-

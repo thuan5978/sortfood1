@@ -3,6 +3,7 @@ import 'package:sortfood/model/products.dart';
 import 'package:logger/logger.dart';
 import 'package:sortfood/model/orders.dart';
 import 'package:sortfood/ui/order_detail_page.dart';
+import 'package:sortfood/model/ordersdetail.dart';
 
 class CartPage extends StatefulWidget {
   final int userId;
@@ -205,15 +206,16 @@ class CartPageState extends State<CartPage> {
   }
 
     Order _createOrder(double totalPrice) {
-    
-    final existingOrders = [];
+  final existingOrders = [];
 
-    int nextCartID = existingOrders.isNotEmpty
-        ? existingOrders.map((order) => order.cartId).reduce((a, b) => a > b ? a : b) + 1
-        : 1;
+  int nextCartID = existingOrders.isNotEmpty
+      ? existingOrders.map((order) => order.cartId).reduce((a, b) => a > b ? a : b) + 1
+      : 1;
+
+  final orderId = DateTime.now().millisecondsSinceEpoch.toInt();
 
     final order = Order(
-      id: DateTime.now().millisecondsSinceEpoch.toInt(),
+      id: orderId,
       userId: widget.userId,
       name: widget.userName,
       address: widget.address,
@@ -228,7 +230,13 @@ class CartPageState extends State<CartPage> {
 
     existingOrders.add(order); 
 
+    
+    final orderDetail = OrdersDetail(
+      id: orderId, 
+      orderId: orderId,
+      products: widget.cartProducts,
+      totalPrice: totalPrice,
+    );
     return order;
   }
-
 }

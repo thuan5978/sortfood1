@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sortfood/api/airtableservice.dart';
 import 'package:sortfood/model/products.dart';
@@ -17,12 +19,21 @@ class HomeScreenState extends State<HomeScreen> {
   final TextEditingController searchController = TextEditingController();
   final AirtableService airtableService = AirtableService();
   final Logger logger = Logger();
+  Offset _floatingButtonOffset = Offset(0, 0);
+  Offset _initialButtonOffset = Offset(0, 0);
 
   List<Products> cartProducts = [];
   List<Products> searchResults = [];
   List<String> categories = ['Tất cả', 'Món chính', 'Đồ uống', 'Tráng miệng', 'Trà sữa'];
   String selectedCategory = 'Tất cả';
   bool isLoading = true;
+
+  final TextEditingController foodnameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
+  final TextEditingController quantityController = TextEditingController();
+  String selectedCategoryAdd = 'Món chính';
+  XFile? selectedImage;
 
    @override
   void initState() {
@@ -173,17 +184,50 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        physics: const ScrollPhysics(),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _buildCategoryChips(),
-            const SizedBox(height: 20),
-            _buildProductSection(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          // Nội dung chính
+          SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            physics: const ScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                _buildCategoryChips(),
+                const SizedBox(height: 20),
+                _buildProductSection(),
+              ],
+            ),
+          ),
+          
+    
+          Positioned(
+            left: _floatingButtonOffset.dx,
+            top: _floatingButtonOffset.dy,
+            child: GestureDetector(
+              onPanStart: (details) {
+        
+                _initialButtonOffset = _floatingButtonOffset;
+              },
+              onPanUpdate: (details) {
+                setState(() {
+                  double newX = _initialButtonOffset.dx + details.localPosition.dx;
+                  double newY = _initialButtonOffset.dy + details.localPosition.dy;
+
+                  _floatingButtonOffset = Offset(
+                    newX.clamp(0.0, MediaQuery.of(context).size.width - 56),
+                    newY.clamp(0.0, MediaQuery.of(context).size.height - 56),
+                  );
+                });
+              },
+              child: FloatingActionButton(
+                onPressed: _showAddProductDialog,
+                child: const Icon(Icons.add),
+                backgroundColor: Colors.orange,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -319,6 +363,123 @@ class HomeScreenState extends State<HomeScreen> {
         const SnackBar(content: Text('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')),
       );
     }
+  }
+  Future<void> _pickImage() async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        selectedImage = pickedFile;
+      });
+    }
+  }
+
+  void _showAddProductDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Thêm Sản Phẩm'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: foodnameController,
+                  decoration: const InputDecoration(labelText: 'Tên Món'),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: 'Mô Tả'),
+                ),
+                TextField(
+                  controller: priceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Giá'),
+                ),
+                TextField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Số Lượng'),
+                ),
+                DropdownButton<String>(
+                  value: selectedCategoryAdd,
+                  onChanged: (String? newCategory) {
+                    setState(() {
+                      selectedCategoryAdd = newCategory!;
+                    });
+                  },
+                  items: categories.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _pickImage,
+                  child: const Text('Chọn Ảnh'),
+                ),
+                selectedImage != null
+                    ? Image.file(
+                        File(selectedImage!.path),
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      )
+                    : const Text('Chưa có ảnh'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () async {
+               
+                final String name = foodnameController.text;
+                final String description = descriptionController.text;
+                final double price = double.tryParse(priceController.text) ?? 0;
+                final int quantity = int.tryParse(quantityController.text) ?? 0;
+                final String category = selectedCategoryAdd;
+                final String imageUrl = selectedImage != null ? selectedImage!.path : '';
+
+                final newProduct = Products(
+                  name: name,
+                  description: description,
+                  price: price,
+                  quantity: quantity,
+                  category: category,
+                  img: imageUrl,
+                );
+
+                try {
+
+                  await airtableService.addProduct(newProduct);
+
+                  setState(() {
+                    searchResults.add(newProduct);
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sản phẩm đã được thêm!')),
+                  );
+                  Navigator.of(context).pop();
+                } catch (error) {
+                  logger.e("Lỗi khi thêm sản phẩm: $error");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Không thể thêm sản phẩm. Vui lòng thử lại.')),
+                  );
+                }
+              },
+              child: const Text('Thêm'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 

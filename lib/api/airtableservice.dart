@@ -369,4 +369,36 @@ class AirtableService {
       return null; 
     }
   }
+
+   Future<void> addProduct(Products product) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.airtable.com/v0/$baseId/$productsTableId'),
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'fields': {
+            'Name': product.name,
+            'Description': product.description,
+            'Price': product.price,
+            'Quantity': product.quantity,
+            'Category': product.category,
+            'State': product.state,
+          },
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        logger.i('Product added successfully: ${response.body}');
+      } else {
+        logger.e('Failed to add product: ${response.statusCode} ${response.reasonPhrase}');
+        throw Exception('Failed to add product: ${response.body}');
+      }
+    } catch (e) {
+      logger.e('Exception occurred while adding product: $e');
+      throw Exception('Exception occurred while adding product: $e');
+    }
+  }
 }

@@ -7,7 +7,7 @@ class Products {
   String img;
   String category;
   List<String> state;
-
+  DateTime? dateAdd; 
   Products({
     this.id,
     this.name = 'Chưa có tên',
@@ -17,6 +17,7 @@ class Products {
     this.img = '',
     this.category = 'Chưa có danh mục',
     List<String>? state,
+    this.dateAdd,
   }) : state = state ?? [];
 
   factory Products.fromJson(Map<dynamic, dynamic> json) {
@@ -35,6 +36,9 @@ class Products {
       state: (json['State'] is List<dynamic>)
           ? (json['State'] as List).map((e) => e.toString()).toList()
           : [],
+      dateAdd: json['DateCreated'] is String 
+          ? DateTime.tryParse(json['DateCreated']) 
+          : null,
     );
   }
 
@@ -50,6 +54,7 @@ class Products {
       ],
       'Category': category,
       'State': state,
+      'DateAdd': dateAdd?.toIso8601String(),
     };
   }
 

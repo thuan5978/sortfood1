@@ -57,7 +57,10 @@ class UserProvider with ChangeNotifier {
         logger.e('Invalid userId: $userId');
       }
     }
-
+   bool get isAdmin {
+    return currentUser?.position?.toLowerCase() == 'admin';
+  }
+  
   Future<void> setCurrentUser(UserModel user) async {
     _currentUser = user;
     final prefs = await SharedPreferences.getInstance();
